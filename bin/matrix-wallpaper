@@ -1,0 +1,30 @@
+#!/bin/bash
+# Matrix live wallpaper control: matrix-wallpaper on|off|toggle|status
+APPDIR="${XDG_DATA_HOME:-$HOME/.local/share}/matrix-wallpaper"
+PLAYER="$APPDIR/player.py"
+# matches the player from any past or current install location
+PATTERN="matrix-wallpaper/player\.py"
+
+is_running() { pgrep -f "$PATTERN" >/dev/null; }
+
+case "${1:-toggle}" in
+  on)
+    if is_running; then echo "matrix rain: already on"; exit 0; fi
+    setsid nohup python3 "$PLAYER" > "${TMPDIR:-/tmp}/matrix-wallpaper.log" 2>&1 &
+    echo "matrix rain: on"
+    ;;
+  off)
+    pkill -f "$PATTERN" 2>/dev/null
+    echo "matrix rain: off"
+    ;;
+  toggle)
+    if is_running; then "$0" off; else "$0" on; fi
+    ;;
+  status)
+    is_running && echo running || echo stopped
+    ;;
+  *)
+    echo "usage: matrix-wallpaper [on|off|toggle|status]" >&2
+    exit 2
+    ;;
+esac
