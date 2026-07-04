@@ -1,5 +1,7 @@
 # Matrix Live Wallpaper
 
+![Matrix digital rain demo](docs/demo.gif)
+
 Film-accurate Matrix digital rain as a live desktop wallpaper for Linux/X11.
 Mirrored half-width katakana, bright white-green head glyphs, exponential
 trail fade, per-stream depth dimming, glyph shimmer, and phosphor bloom —
