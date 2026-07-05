@@ -57,6 +57,7 @@ class Wallpaper:
         bus.enable_sync_message_emission()
         bus.connect("sync-message::element", self.on_sync_message)
         bus.connect("message::segment-done", self.on_segment_done)
+        bus.connect("message::eos", self.on_eos)
         bus.connect("message::error", self.on_error)
 
     def on_realize(self, widget):
@@ -78,13 +79,24 @@ class Wallpaper:
         return True
 
     def start_segment_loop(self):
-        self.play.seek(1.0, Gst.Format.TIME,
-                       Gst.SeekFlags.FLUSH | Gst.SeekFlags.SEGMENT,
-                       Gst.SeekType.SET, 0, Gst.SeekType.NONE, -1)
-        return False
+        # The seek is rejected until preroll completes; on a busy login
+        # (many apps starting at once) 500ms is not always enough, and a
+        # missed seek means playback runs to EOS and freezes on the last
+        # frame. Keep retrying until the pipeline accepts it.
+        ok = self.play.seek(1.0, Gst.Format.TIME,
+                            Gst.SeekFlags.FLUSH | Gst.SeekFlags.SEGMENT,
+                            Gst.SeekType.SET, 0, Gst.SeekType.NONE, -1)
+        return not ok
 
     def on_segment_done(self, bus, msg):
         self.play.seek(1.0, Gst.Format.TIME, Gst.SeekFlags.SEGMENT,
+                       Gst.SeekType.SET, 0, Gst.SeekType.NONE, -1)
+
+    def on_eos(self, bus, msg):
+        # Safety net: EOS only arrives when the segment loop was never
+        # armed (or dropped) — restart playback from 0 and re-arm it.
+        self.play.seek(1.0, Gst.Format.TIME,
+                       Gst.SeekFlags.FLUSH | Gst.SeekFlags.SEGMENT,
                        Gst.SeekType.SET, 0, Gst.SeekType.NONE, -1)
 
     def on_sync_message(self, bus, msg):
